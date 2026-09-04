@@ -1,0 +1,15 @@
+name: YouTube Video Factory
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-video:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check FFmpeg
+        run: ffmpeg -version
