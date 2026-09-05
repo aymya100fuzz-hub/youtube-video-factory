@@ -2,6 +2,11 @@ name: YouTube Video Factory
 
 on:
   workflow_dispatch:
+    inputs:
+      visual_plan:
+        description: "Gemini visual plan"
+        required: true
+        type: string
 
 jobs:
   build-video:
@@ -15,6 +20,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
+
+      - name: Save visual plan
+        run: |
+          cat > visual_plan.txt <<'EOF'
+          ${{ inputs.visual_plan }}
+          EOF
+
+          echo "Visual plan received:"
+          cat visual_plan.txt
 
       - name: Search Pixabay
         env:
