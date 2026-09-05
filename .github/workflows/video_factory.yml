@@ -16,12 +16,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
-      - name: Test Pixabay API
+      - name: Search Pixabay
         env:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: |
           curl -s "https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=nature&per_page=3" > pixabay.json
-          cat pixabay.json
 
       - name: Download Pixabay clip
         run: |
@@ -29,21 +28,26 @@ jobs:
           curl -L "$URL" -o pixabay-clip.mp4
           ls -lh pixabay-clip.mp4
 
-      - name: Create test video
+      - name: Create video from Pixabay clip
         run: |
-          ffmpeg -f lavfi -i color=c=black:s=1280x720:d=5 \
-            -c:v libx264 -pix_fmt yuv420p test-video.mp4
+          ffmpeg -i pixabay-clip.mp4 \
+            -t 5 \
+            -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+            -c:v libx264 \
+            -pix_fmt yuv420p \
+            -an \
+            test-video.mp4
 
       - name: Verify video
         run: |
           ls -lh test-video.mp4
-          ffprobe -v error -show_entries format=duration \
-            -of default=noprint_wrappers=1 test-video.mp4
+          ffprobe -v error \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            test-video.mp4
 
-      - name: Upload test files
+      - name: Upload test video
         uses: actions/upload-artifact@v4
         with:
-          name: test-files
-          path: |
-            test-video.mp4
-            pixabay-clip.mp4
+          name: test-video
+          path: test-video.mp4
