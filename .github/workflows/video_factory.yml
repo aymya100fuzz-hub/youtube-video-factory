@@ -20,34 +20,53 @@ jobs:
         env:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: |
-          curl -s "https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=nature&per_page=3" > pixabay.json
+          curl -s "https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=technology&per_page=3" > technology.json
+          curl -s "https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=computer&per_page=3" > computer.json
+          curl -s "https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=business&per_page=3" > business.json
 
-      - name: Download Pixabay clip
+      - name: Download clips
         run: |
-          URL=$(python -c "import json; print(json.load(open('pixabay.json'))['hits'][1]['videos']['small']['url'])")
-          curl -L "$URL" -o pixabay-clip.mp4
-          ls -lh pixabay-clip.mp4
+          URL1=$(python -c "import json; print(json.load(open('technology.json'))['hits'][0]['videos']['small']['url'])")
+          URL2=$(python -c "import json; print(json.load(open('computer.json'))['hits'][0]['videos']['small']['url'])")
+          URL3=$(python -c "import json; print(json.load(open('business.json'))['hits'][0]['videos']['small']['url'])")
 
-      - name: Create video from Pixabay clip
+          curl -L "$URL1" -o clip1.mp4
+          curl -L "$URL2" -o clip2.mp4
+          curl -L "$URL3" -o clip3.mp4
+
+      - name: Prepare clips
         run: |
-          ffmpeg -i pixabay-clip.mp4 \
-            -t 5 \
+          ffmpeg -y -i clip1.mp4 -t 5 \
             -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
-            -c:v libx264 \
-            -pix_fmt yuv420p \
-            -an \
-            test-video.mp4
+            -an -c:v libx264 -pix_fmt yuv420p clip1_fixed.mp4
 
-      - name: Verify video
+          ffmpeg -y -i clip2.mp4 -t 5 \
+            -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+            -an -c:v libx264 -pix_fmt yuv420p clip2_fixed.mp4
+
+          ffmpeg -y -i clip3.mp4 -t 5 \
+            -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+            -an -c:v libx264 -pix_fmt yuv420p clip3_fixed.mp4
+
+      - name: Combine clips
         run: |
-          ls -lh test-video.mp4
+          printf "file '%s'\n" clip1_fixed.mp4 clip2_fixed.mp4 clip3_fixed.mp4 > concat.txt
+
+          ffmpeg -y -f concat -safe 0 -i concat.txt \
+            -c copy \
+            final-test-video.mp4
+
+      - name: Verify final video
+        run: |
+          ls -lh final-test-video.mp4
+
           ffprobe -v error \
             -show_entries format=duration \
             -of default=noprint_wrappers=1 \
-            test-video.mp4
+            final-test-video.mp4
 
-      - name: Upload test video
+      - name: Upload final video
         uses: actions/upload-artifact@v4
         with:
-          name: test-video
-          path: test-video.mp4
+          name: final-test-video
+          path: final-test-video.mp4
