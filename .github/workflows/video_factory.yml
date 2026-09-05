@@ -23,7 +23,7 @@ jobs:
           curl -s "https://pixabay.com/api/videos/?key=${PIXABAY_API_KEY}&q=nature&per_page=3" > pixabay.json
           cat pixabay.json
 
-            - name: Download Pixabay clip
+      - name: Download Pixabay clip
         run: |
           URL=$(python -c "import json; print(json.load(open('pixabay.json'))['hits'][1]['videos']['small']['url'])")
           curl -L "$URL" -o pixabay-clip.mp4
