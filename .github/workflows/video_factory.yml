@@ -14,21 +14,32 @@ jobs:
       - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg wget unzip
 
-      - name: Create test video
+      - name: Download Piper
         run: |
-          ffmpeg -f lavfi -i color=c=black:s=1280x720:d=5 \
-            -c:v libx264 -pix_fmt yuv420p test-video.mp4
+          wget -q https://github.com/rhasspy/piper/releases/download/v1.2.0/piper_linux_x86_64.tar.gz
+          tar -xzf piper_linux_x86_64.tar.gz
 
-      - name: Verify video
+      - name: Download voice
         run: |
-          ls -lh test-video.mp4
+          mkdir -p voice
+          wget -q https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx -O voice/model.onnx
+          wget -q https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json -O voice/model.onnx.json
+
+      - name: Create narration
+        run: |
+          echo "Why do most YouTube automation channels fail? The answer is simpler than you think." > script.txt
+          echo "Why do most YouTube automation channels fail? The answer is simpler than you think." | ./piper/piper --model voice/model.onnx --output_file narration.wav
+
+      - name: Verify narration
+        run: |
+          ls -lh narration.wav
           ffprobe -v error -show_entries format=duration \
-            -of default=noprint_wrappers=1 test-video.mp4
+            -of default=noprint_wrappers=1 narration.wav
 
-      - name: Upload test video
+      - name: Upload narration
         uses: actions/upload-artifact@v4
         with:
-          name: test-video
-          path: test-video.mp4
+          name: narration-test
+          path: narration.wav
